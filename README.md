@@ -8,13 +8,15 @@ An AI-powered information retrieval system for Flash Bootloader and Over-The-Air
 - Context-aware responses using RAG technology
 - Bootloader configuration recommendations based on use cases
 - Security best practices for OTA implementations
-- Real-time information processing using LlamaIndex and OpenAI
-- Vector-based document storage for efficient retrieval
+- High-performance document processing using LlamaIndex and LlamaParse
+- Scalable vector storage using Supabase PostgreSQL vector database
+- Real-time response generation with OpenAI
 
 ## Prerequisites
 - Python 3.9 or higher
 - OpenAI API key
-- Sufficient storage for vector database
+- Supabase account and project
+- PostgreSQL with pgvector extension (handled by Supabase)
 
 ## Installation
 ```bash
@@ -34,13 +36,14 @@ pip install -r requirements.txt
 1. Create a `.env` file in the project root with your configuration:
 ```ini
 OPENAI_API_KEY=your-key-here
-VECTOR_DB_PATH=chroma_db/
+SUPABASE_URL=your-supabase-project-url
+SUPABASE_KEY=your-supabase-api-key
 ```
 
-2. Ensure your vector database directory exists:
-```bash
-mkdir -p chroma_db
-```
+2. Set up Supabase:
+- Create a new project in Supabase
+- Enable the pgvector extension in your Supabase project
+- Create necessary tables and indexes (see documentation)
 
 ## Usage
 1. Start the assistant:
@@ -54,14 +57,14 @@ python main.py
 - `main.py`: Core application logic and RAG implementation
 - `prompts.py`: System prompts and query templates
 - `requirements.txt`: Project dependencies
-- `chroma_db/`: Vector database storage
 - `.env`: Environment configuration
 
 ## Dependencies
-- llama-index-core: Core RAG functionality
-- llama-parse: Document parsing
-- langchain-community: LLM utilities
-- openai: OpenAI API interface
+- llama-index-core: Core RAG functionality and vector operations
+- llama-parse: Advanced document parsing and structuring
+- llama-index-llms-openai: OpenAI integration for LlamaIndex
+- llama-index-embeddings-openai: OpenAI embeddings for vector search
+- supabase: Vector database and PostgreSQL integration
 - python-dotenv: Environment management
 
 ## Contributing
