@@ -1,43 +1,115 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+.env
+.venv
+pip-wheel-metadata/
 
-# Environment
+# Environment Variables
 .env
 .env.local
 .env.development
 .env.test
 .env.production
+.env.backup
 
-# Logs and databases
+# Logs and Databases
 *.log
 *.sqlite
 *.db
+logs/
+*.log.*
+log/
 
-# IDE
-.vscode/
+# IDE Settings
 .idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.settings/
+*.sublime-workspace
+*.sublime-project
 
-# Build/installation
-dist/
-build/
-*.egg-info/
-pip-wheel-metadata/
-
-# Testing
+# Testing and Coverage
+.tox/
 .coverage
+.coverage.*
 htmlcov/
 .pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
 
-# Vector stores and large files
+# Project Specific
 chroma_db/
+vector_store/
+embeddings/
 *.bin
 *.pkl
 *.index
+*.faiss
+*.hdf5
+model_cache/
+data/processed/
+data/raw/
+
+# Documentation
+docs/_build/
+site/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Distribution
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Misc
+*.bak
+*.swp
+*.tmp
+*~
+.DS_Store
+Thumbs.db
