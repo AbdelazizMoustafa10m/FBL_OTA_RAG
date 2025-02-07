@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# Build/installation
+dist/
+build/
+*.egg-info/
+pip-wheel-metadata/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Vector stores and large files
+chroma_db/
+*.bin
+*.pkl
+*.index
