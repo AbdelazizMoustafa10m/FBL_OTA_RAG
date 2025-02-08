@@ -11,6 +11,10 @@ An AI-powered information retrieval system for Flash Bootloader and Over-The-Air
 - High-performance document processing using LlamaIndex and LlamaParse
 - Scalable vector storage using Supabase PostgreSQL vector database
 - Real-time response generation with OpenAI
+- RESTful API endpoints using FastAPI
+- Docker containerization for easy deployment
+- Comprehensive API testing suite
+- CORS support for web integration
 
 ## Prerequisites
 - Python 3.9 or higher
@@ -46,26 +50,64 @@ SUPABASE_KEY=your-supabase-api-key
 - Create necessary tables and indexes (see documentation)
 
 ## Usage
-1. Start the assistant:
+
+### Running Locally
+1. Start the API server:
 ```bash
 python main.py
 ```
 
-2. Ask questions about Flash Bootloader and OTA updates in natural language.
+2. The API will be available at `http://localhost:8000`
+
+### Using Docker
+1. Build the Docker image:
+```bash
+docker build -t fbl-ota-rag .
+```
+
+2. Run the container:
+```bash
+docker run -p 8000:8000 --env-file .env fbl-ota-rag
+```
+
+### API Endpoints
+- `POST /query`: Submit a natural language query about Flash Bootloader and OTA updates
+  ```json
+  {
+    "query": "What are the security best practices for OTA updates?"
+  }
+  ```
+
+- Additional endpoints documentation available at `/docs` when server is running
 
 ## Project Structure
-- `main.py`: Core application logic and RAG implementation
+- `main.py`: FastAPI server setup and configuration
+- `api.py`: API endpoints and route handlers
+- `agent_setup.py`: RAG agent configuration and setup
 - `prompts.py`: System prompts and query templates
+- `test_api.py`: API testing suite
 - `requirements.txt`: Project dependencies
 - `.env`: Environment configuration
+- `Dockerfile`: Container configuration
+- `.dockerignore`: Docker build exclusions
 
 ## Dependencies
+### Core Dependencies
 - llama-index-core: Core RAG functionality and vector operations
 - llama-parse: Advanced document parsing and structuring
 - llama-index-llms-openai: OpenAI integration for LlamaIndex
 - llama-index-embeddings-openai: OpenAI embeddings for vector search
 - supabase: Vector database and PostgreSQL integration
 - python-dotenv: Environment management
+
+### API Dependencies
+- fastapi: Modern web framework for building APIs
+- uvicorn: ASGI server implementation
+- pydantic: Data validation using Python type annotations
+
+### Development Dependencies
+- python-multipart: Handling form data
+- requests: HTTP library for API testing
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
