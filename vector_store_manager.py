@@ -1,231 +1,178 @@
 from typing import List, Dict, Any, Optional
 from supabase import Client, create_client
 from llama_index.embeddings.openai import OpenAIEmbedding
-from llama_index.core import Document
-import os
-from dotenv import load_dotenv
+from llama_index.core import Document, VectorStoreIndex, StorageContext
+from llama_index.vector_stores.supabase import SupabaseVectorStore
+from llama_parse import LlamaParse
 
 class VectorStoreManager:
-    def __init__(self, supabase_url: str = None, supabase_key: str = None,
-                 table_name: str = 'document_store',
-                 embedding_dim: int = 1536,
-                 similarity_top_k: int = 8,  # Increased for better context coverage
-                 similarity_cutoff: float = 0.7):  # Increased for more relevant matches
-        """
-        Initialize the VectorStoreManager.
-        
-        Args:
-            supabase_url (str): Supabase project URL
-            supabase_key (str): Supabase project key
-            table_name (str): Name of the table to store vectors
-            embedding_dim (int): Dimension of the embedding vectors
-        """
-        load_dotenv()
-        self.supabase_url = supabase_url or os.getenv("SUPABASE_URL")
-        self.supabase_key = supabase_key or os.getenv("SUPABASE_KEY")
-        self.table_name = table_name
-        self.embedding_dim = embedding_dim
-        self.client = create_client(self.supabase_url, self.supabase_key)
-        self.embed_model = OpenAIEmbedding()
-        self.similarity_top_k = similarity_top_k
-        self.similarity_cutoff = similarity_cutoff  # Minimum similarity score to consider
+    def __init__(
+        self,
+        supabase_url: str,
+        supabase_key: str,
+        postgres_connection: str,
+        llama_cloud_api_key: Optional[str] = None,
+        collection_name: str = "document_store"
+    ):
+        """Initialize the VectorStoreManager with necessary credentials.
 
-    def insert_document(self, document: Document) -> Dict[str, Any]:
-        """
-        Insert a single document into the vector store.
-        
         Args:
-            document (Document): Document object containing text and metadata
-            
-        Returns:
-            Dict containing the response from Supabase
+            supabase_url: Supabase project URL
+            supabase_key: Supabase API key
+            postgres_connection: Postgres connection string
+            llama_cloud_api_key: Optional API key for LlamaParse
+            collection_name: Name of the collection in Supabase
         """
-        try:
-            embedding = self.embed_model.get_text_embedding(document.text)
+        self.supabase_client = create_client(supabase_url, supabase_key)
+        self.vector_store = SupabaseVectorStore(
+            postgres_connection_string=postgres_connection,
+            client=self.supabase_client,
+            collection_name=collection_name
+        )
+        self.storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
+        self.embed_model = OpenAIEmbedding()
+        
+        if llama_cloud_api_key:
+            self.parser = LlamaParse(
+                api_key=llama_cloud_api_key,
+                result_type="markdown",
+                verbose=True
+            )
+
+    def parse_documents(self, directory_path: str) -> List[Document]:
+        """Parse documents from a directory using LlamaParse.
+
+        Args:
+            directory_path: Path to directory containing documents
+
+        Returns:
+            List of parsed Document objects
+        """
+        if not hasattr(self, 'parser'):
+            raise ValueError("LlamaParse API key not provided during initialization")
+
+        file_extractor = {".pdf": self.parser}
+        return SimpleDirectoryReader(
+            directory_path,
+            file_extractor=file_extractor
+        ).load_data()
+
+    def insert_documents(self, documents: List[Document]) -> Dict[str, Any]:
+        """Insert documents into Supabase vector store.
+
+        Args:
+            documents: List of Document objects to insert
+
+        Returns:
+            Dict containing success status and counts
+        """
+        success_count = 0
+        error_count = 0
+
+        for doc in documents:
+            embedding = self.embed_model.get_text_embedding(doc.text)
             document_data = {
-                'content': document.text,
-                'metadata': document.metadata,
+                'content': doc.text,
+                'metadata': doc.metadata,
                 'embedding': embedding
             }
-            
-            result = self.client.table(self.table_name).insert(document_data).execute()
-            return result.data[0] if result.data else {}
-        except Exception as e:
-            raise Exception(f"Error inserting document: {str(e)}")
 
-    def batch_insert_documents(self, documents: List[Document]) -> List[Dict[str, Any]]:
-        """
-        Insert multiple documents into the vector store.
-        
-        Args:
-            documents (List[Document]): List of Document objects
-            
-        Returns:
-            List of responses from Supabase
-        """
-        try:
-            document_data_list = []
-            for doc in documents:
-                embedding = self.embed_model.get_text_embedding(doc.text)
-                document_data = {
-                    'content': doc.text,
-                    'metadata': doc.metadata,
-                    'embedding': embedding
-                }
-                document_data_list.append(document_data)
-            
-            result = self.client.table(self.table_name).insert(document_data_list).execute()
-            return result.data if result.data else []
-        except Exception as e:
-            raise Exception(f"Error batch inserting documents: {str(e)}")
+            result = self.supabase_client.table('document_store').insert(document_data).execute()
+            if hasattr(result, 'error') and result.error is not None:
+                error_count += 1
+            else:
+                success_count += 1
 
-    def query_documents(self, filters: Dict[str, Any] = None, 
-                       page: int = 0, page_size: int = 10) -> List[Dict[str, Any]]:
-        """
-        Query documents with optional filters and pagination.
-        
-        Args:
-            filters (Dict): Dictionary of filters to apply
-            page (int): Page number (0-based)
-            page_size (int): Number of items per page
-            
-        Returns:
-            List of documents matching the query
-        """
-        try:
-            query = self.client.table(self.table_name).select('*')
-            
-            if filters:
-                for key, value in filters.items():
-                    if isinstance(value, list):
-                        query = query.in_(key, value)
-                    else:
-                        query = query.eq(key, value)
-            
-            start = page * page_size
-            end = start + page_size - 1
-            result = query.range(start, end).execute()
-            
-            return result.data if result.data else []
-        except Exception as e:
-            raise Exception(f"Error querying documents: {str(e)}")
+        return {
+            'total_documents': len(documents),
+            'successful_insertions': success_count,
+            'failed_insertions': error_count
+        }
 
-    def update_document(self, document_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Update a document by ID.
-        
-        Args:
-            document_id (int): ID of the document to update
-            updates (Dict): Dictionary of fields to update
-            
-        Returns:
-            Updated document data
-        """
-        try:
-            if 'content' in updates:
-                updates['embedding'] = self.embed_model.get_text_embedding(updates['content'])
-            
-            result = self.client.table(self.table_name)\
-                .update(updates)\
-                .eq('id', document_id)\
-                .execute()
-            
-            return result.data[0] if result.data else {}
-        except Exception as e:
-            raise Exception(f"Error updating document: {str(e)}")
+    def create_index(self, documents: List[Document]) -> VectorStoreIndex:
+        """Create a vector store index from documents.
 
-    def delete_document(self, document_id: int) -> bool:
-        """
-        Delete a document by ID.
-        
         Args:
-            document_id (int): ID of the document to delete
-            
-        Returns:
-            bool: True if deletion was successful
-        """
-        try:
-            result = self.client.table(self.table_name)\
-                .delete()\
-                .eq('id', document_id)\
-                .execute()
-            
-            return bool(result.data)
-        except Exception as e:
-            raise Exception(f"Error deleting document: {str(e)}")
+            documents: List of Document objects
 
-    def get_document_count(self) -> int:
-        """
-        Get the total number of documents in the store.
-        
         Returns:
-            int: Total number of documents
+            VectorStoreIndex object
         """
-        try:
-            result = self.client.table(self.table_name)\
-                .select('id', count='exact')\
-                .execute()
-            
-            return result.count if hasattr(result, 'count') else 0
-        except Exception as e:
-            raise Exception(f"Error getting document count: {str(e)}")
-            
-    def check_table_exists(self) -> bool:
-        """
-        Check if the document_store table exists in Supabase.
-        
-        Returns:
-            bool: True if the table exists, False otherwise
-        """
-        try:
-            # Try to select from the table - if it exists, this will succeed
-            self.client.table(self.table_name).select('id').limit(1).execute()
-            return True
-        except Exception as e:
-            if 'relation "document_store" does not exist' in str(e):
-                return False
-            # If it's some other error, re-raise it
-            raise e
-            
-    def create_index(self, embed_model=None):
-        """
-        Create a VectorStoreIndex from the documents in Supabase.
-        
-        Args:
-            embed_model: Optional embedding model to use. If not provided, uses the default OpenAI model.
-            
-        Returns:
-            VectorStoreIndex: The created index
-        """
-        from llama_index.core import VectorStoreIndex
-        from llama_index.vector_stores.supabase import SupabaseVectorStore
-        
-        # Use the provided embed model or the default one
-        if embed_model:
-            self.embed_model = embed_model
-            
-        # Create vector store using simple setup
-        from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-        from llama_index.core.storage.storage_context import StorageContext
-        
-        # Create an in-memory vector store
-        storage_context = StorageContext.from_defaults()
-        
-        # Create and return the index
-        return VectorStoreIndex.from_vector_store(
-            vector_store=vector_store,
+        # Use the existing storage context to maintain persistence
+        index = VectorStoreIndex.from_documents(
+            documents,
+            storage_context=self.storage_context,
             embed_model=self.embed_model
         )
         
-    def add_documents(self, documents):
+        # Persist the storage context
+        self.storage_context.persist()
+        
+        return index
+
+    def get_document_count(self) -> int:
+        """Get the total number of documents in the vector store.
+
+        Returns:
+            Total number of documents
         """
-        Add documents to the vector store.
+        result = self.supabase_client.table('document_store').select('*').execute()
+        if hasattr(result, 'error') and result.error is not None:
+            raise Exception(f"Error checking documents: {result.error}")
+        return len(result.data) if result.data else 0
+
+    def load_documents_from_store(self) -> List[Document]:
+        """Load all documents from the vector store in Supabase and return them as Document objects."""
+        result = self.supabase_client.table('document_store').select('*').execute()
+        if hasattr(result, 'error') and result.error is not None:
+            raise Exception(f"Error loading documents: {result.error}")
+
+        documents = []
+        if result.data:
+            for record in result.data:
+                # Assuming record has 'content' and 'metadata' keys
+                documents.append(Document(text=record.get('content', ''), metadata=record.get('metadata', {})))
+        return documents
+
+    def hybrid_search(self, query: str, content_type: Optional[str] = None, top_k: int = 5) -> List[Document]:
+        """Perform hybrid search combining semantic and keyword search with metadata filtering.
         
         Args:
-            documents: List of Document objects to add
+            query: Search query
+            content_type: Optional filter for specific content types
+            top_k: Number of results to return
+            
+        Returns:
+            List of relevant Document objects
         """
-        # Process documents in batches to avoid overwhelming the system
-        batch_size = 10
-        for i in range(0, len(documents), batch_size):
-            batch = documents[i:i + batch_size]
-            self.batch_insert_documents(batch)
+        # Generate query embedding
+        query_embedding = self.embed_model.get_text_embedding(query)
+        
+        # Build base query
+        base_query = self.supabase_client.table('document_store')
+        
+        # Add content type filter if specified
+        if content_type:
+            base_query = base_query.eq('metadata->>content_type', content_type)
+        
+        # Combine semantic search with keyword matching
+        # Note: This assumes Supabase is configured with pg_vector extension
+        result = base_query.select('*').order(
+            'embedding <-> $1::vector',
+            'content ILIKE $2',
+            ascending=[True, True],
+            foreign_table={'embedding': query_embedding, 'pattern': f'%{query}%'}
+        ).limit(top_k).execute()
+        
+        if hasattr(result, 'error') and result.error is not None:
+            raise Exception(f"Error performing hybrid search: {result.error}")
+            
+        documents = []
+        if result.data:
+            for record in result.data:
+                documents.append(Document(
+                    text=record.get('content', ''),
+                    metadata=record.get('metadata', {})
+                ))
+        
+        return documents

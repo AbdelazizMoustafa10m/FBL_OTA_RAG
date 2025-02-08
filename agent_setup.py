@@ -18,21 +18,23 @@ def setup_agent():
     """Set up and return the ReAct agent with all necessary components"""
     load_dotenv()
 
-    # Initialize VectorStoreManager and DocumentProcessor
-    vector_manager = VectorStoreManager()
+    # Initialize VectorStoreManager with all required credentials
+    vector_manager = VectorStoreManager(
+        supabase_url=os.getenv("SUPABASE_URL"),
+        supabase_key=os.getenv("SUPABASE_KEY"),
+        postgres_connection=os.getenv("SUPABASE_DB_CONNECTION"),
+        llama_cloud_api_key=os.getenv("LLAMA_CLOUD_API_KEY")
+    )
+    
+    # Initialize DocumentProcessor
     doc_processor = DocumentProcessor(vector_manager)
     
     # Process any new documents
     if not doc_processor.process_documents():
         print("Warning: Some documents failed to process")
     
-    # Set up the vector store and storage context
-    vector_store = SupabaseVectorStore(
-        postgres_connection_string=os.getenv("SUPABASE_DB_CONNECTION"),
-        client=vector_manager.client,
-        collection_name=vector_manager.table_name
-    )
-    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+    # Use the storage context from vector_manager
+    storage_context = vector_manager.storage_context
 
     # Set up LLM and configure settings
     llm = OpenAI(model="gpt-4o-mini", temperature=0.3)
@@ -40,11 +42,10 @@ def setup_agent():
     Settings.chunk_size = 512
     Settings.chunk_overlap = 100  # Increased for better context overlap
     
-    # Create index with improved retrieval settings
-    index = VectorStoreIndex.from_vector_store(
-        vector_store,
-        storage_context=storage_context,
-    )
+    # Create index using vector_manager's create_index method
+    # First get all documents to create the index
+    documents = doc_processor.get_all_documents()
+    index = vector_manager.create_index(documents)
     
     # Configure query engine with better retrieval and response synthesis
     query_engine = index.as_query_engine(similarity_top_k=5)

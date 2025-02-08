@@ -8,11 +8,17 @@ An AI-powered information retrieval system for Flash Bootloader and Over-The-Air
 - Context-aware responses using RAG technology
 - Bootloader configuration recommendations based on use cases
 - Security best practices for OTA implementations
-- Advanced document processing with automatic PDF parsing and markdown conversion
-- Efficient document chunking and embedding generation
-- Intelligent document deduplication and processing tracking
-- High-performance vector similarity search with customizable parameters
-- Scalable vector storage using Supabase PostgreSQL vector database
+- Enhanced document processing with:
+  - Automatic PDF parsing and markdown conversion
+  - Smart section header extraction
+  - Content type classification (security, examples, notices)
+  - Improved chunking with increased overlap for better context
+- Advanced vector store management:
+  - Hybrid search combining semantic and keyword matching
+  - Efficient document chunking and embedding generation
+  - Intelligent document deduplication and processing tracking
+  - High-performance vector similarity search with metadata filtering
+  - Scalable vector storage using Supabase PostgreSQL vector database
 - Real-time response generation with OpenAI
 - RESTful API endpoints using FastAPI
 - Docker containerization for easy deployment

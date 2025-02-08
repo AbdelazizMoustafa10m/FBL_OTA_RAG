@@ -11,8 +11,7 @@ from vector_store_manager import VectorStoreManager
 
 class DocumentProcessor:
     def __init__(self, vector_store_manager: VectorStoreManager):
-        """
-        Initialize DocumentProcessor with a VectorStoreManager instance.
+        """Initialize DocumentProcessor with a VectorStoreManager instance.
         
         Args:
             vector_store_manager (VectorStoreManager): Instance of VectorStoreManager
@@ -20,11 +19,28 @@ class DocumentProcessor:
         self.vector_store_manager = vector_store_manager
         self.processed_files_path = Path("processed_files.json")
         self.data_dir = Path("./data")
-        self.parser = LlamaParse(
-            api_key=os.getenv("LLAMA_CLOUD_API_KEY"),
-            result_type="markdown",
-            verbose=True
-        )
+        # We'll use the parser from vector_store_manager
+        self.parser = vector_store_manager.parser
+
+    def _extract_section_header(self, text: str) -> str:
+        """Extract section header from text chunk."""
+        lines = text.split('\n')
+        for line in lines[:2]:  # Check first two lines
+            # Look for common section header patterns
+            if any(pattern in line.lower() for pattern in ['class', 'section', 'chapter']):
+                return line.strip()
+        return ''
+
+    def _identify_content_type(self, text: str) -> str:
+        """Identify the type of content in the chunk."""
+        text_lower = text.lower()
+        if 'security class' in text_lower:
+            return 'security_class_definition'
+        elif any(word in text_lower for word in ['example', 'usage']):
+            return 'example'
+        elif any(word in text_lower for word in ['warning', 'caution', 'note']):
+            return 'notice'
+        return 'general'
 
     def get_processed_files(self) -> Set[str]:
         """Get the set of files that have already been processed"""
@@ -72,10 +88,10 @@ class DocumentProcessor:
         # Load documents using SimpleDirectoryReader with LlamaParse
         file_extractor = {".pdf": self.parser}
         try:
-            # Initialize text splitter for better chunking
+            # Initialize text splitter with enhanced chunking strategy
             text_splitter = SentenceSplitter(
                 chunk_size=512,
-                chunk_overlap=50,
+                chunk_overlap=150,  # Increased overlap for better context
                 include_metadata=True
             )
             
@@ -93,18 +109,35 @@ class DocumentProcessor:
                 nodes = text_splitter.get_nodes_from_documents([doc])
                 # Convert nodes back to documents while preserving metadata
                 for node in nodes:
-                    processed_documents.append(Document(text=node.text, metadata=node.metadata))
+                    # Enhance metadata with section and content type information
+                    enhanced_metadata = node.metadata.copy() if node.metadata else {}
+                    enhanced_metadata.update({
+                        'section': self._extract_section_header(node.text),
+                        'content_type': self._identify_content_type(node.text)
+                    })
+                    processed_documents.append(Document(text=node.text, metadata=enhanced_metadata))
             
-            # Batch insert processed documents into vector store
-            self.vector_store_manager.batch_insert_documents(processed_documents)
+            # Insert documents into the vector store
+            result = self.vector_store_manager.insert_documents(processed_documents)
+            
+            if result['failed_insertions'] > 0:
+                print(f"Warning: {result['failed_insertions']} documents failed to insert")
+                success = False
+            else:
+                print(f"Successfully inserted {result['successful_insertions']} documents")
             
             # Update processed files list
             processed_files.update(new_file_paths)
             self.save_processed_files(processed_files)
-            
-            print(f"Successfully processed {len(documents)} documents")
+            return success
         except Exception as e:
-            print(f"Error processing documents: {str(e)}")
-            success = False
+            print(f"Error processing documents: {e}")
+            return False
 
-        return success
+    def get_all_documents(self) -> List[Document]:
+        """Get all processed documents from the vector store directly using the load_documents_from_store method."""
+        try:
+            return self.vector_store_manager.load_documents_from_store()
+        except Exception as e:
+            print(f"Error retrieving documents: {e}")
+            return []
