@@ -8,7 +8,10 @@ An AI-powered information retrieval system for Flash Bootloader and Over-The-Air
 - Context-aware responses using RAG technology
 - Bootloader configuration recommendations based on use cases
 - Security best practices for OTA implementations
-- High-performance document processing using LlamaIndex and LlamaParse
+- Advanced document processing with automatic PDF parsing and markdown conversion
+- Efficient document chunking and embedding generation
+- Intelligent document deduplication and processing tracking
+- High-performance vector similarity search with customizable parameters
 - Scalable vector storage using Supabase PostgreSQL vector database
 - Real-time response generation with OpenAI
 - RESTful API endpoints using FastAPI

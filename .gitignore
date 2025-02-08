@@ -45,6 +45,11 @@ pip-wheel-metadata/
 logs/
 *.log.*
 log/
+processed_files.json
+
+# Data and Processing
+data/*
+!data/.gitkeep
 
 # IDE Settings
 .idea/
