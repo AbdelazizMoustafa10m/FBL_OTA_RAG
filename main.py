@@ -14,11 +14,11 @@ app = FastAPI(
 
 
 # Configure CORS
-origins = ["*"]  # Allow all origins temporarily for debugging
+origins = ["https://fbl-chatbot.vercel.app", "https://chatbot-api.n8ndeutschauto.de"]  # Allow both Vercel and Cloudflare tunnel domains
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=False,  # Set to False when using allow_origins=["*"]
+    allow_credentials=True,  
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
     max_age=86400  # Cache preflight requests for 24 hours

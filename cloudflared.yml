@@ -1,0 +1,22 @@
+tunnel: 1301458a-8b6c-4720-b9c3-fb30d47981b2
+credentials-file: /Users/abdelazizmoustafa/.cloudflared/1301458a-8b6c-4720-b9c3-fb30d47981b2.json
+
+ingress:
+  - hostname: chatbot-api.n8ndeutschauto.de
+    service: http://localhost:8000
+    originRequest:
+      connectTimeout: 30s
+      noTLSVerify: true
+  - service: http_status:404
+
+# Tunnel options
+originRequest:
+  # HTTP/2 options
+  http2Origin: true
+  # Connection options
+  connectTimeout: 30s
+  keepAliveTimeout: 30s
+  keepAliveConnections: 10
+  # TLS options
+  noTLSVerify: true
+  disableChunkedEncoding: true

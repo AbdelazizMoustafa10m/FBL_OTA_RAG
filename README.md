@@ -118,6 +118,57 @@ docker run -p 8000:8000 --env-file .env fbl-ota-rag
 - python-multipart: Handling form data
 - requests: HTTP library for API testing
 
+## Deployment
+
+### Process Management with PM2
+The application uses PM2 for process management to ensure high availability and automatic restarts. The configuration is in `ecosystem.config.js` and includes:
+
+1. FastAPI Server Process:
+```javascript
+{
+  name: 'fbl-ota-rag',
+  script: 'uvicorn',
+  args: 'main:app --host 0.0.0.0 --port 8000',
+  // ... other configurations
+}
+```
+
+2. Cloudflare Tunnel Process:
+```javascript
+{
+  name: 'fbl-ota-tunnel',
+  script: 'cloudflared',
+  args: 'tunnel --config /path/to/cloudflared.yml run',
+  // ... other configurations
+}
+```
+
+To start the processes:
+```bash
+pm2 start ecosystem.config.js
+pm2 save  # Save process list for automatic startup
+```
+
+### Cloudflare Tunnel Configuration
+The application uses Cloudflare Tunnels for secure access. Configuration is in `cloudflared.yml`:
+
+```yaml
+tunnel: your-tunnel-id
+credentials-file: /path/to/credentials.json
+
+ingress:
+  - hostname: your-domain.example.com
+    service: http://localhost:8000
+  - service: http_status:404
+```
+
+Setup steps:
+1. Install cloudflared
+2. Create a tunnel: `cloudflared tunnel create <name>`
+3. Configure DNS: `cloudflared tunnel route dns <tunnel-id> <hostname>`
+4. Update CORS settings in `main.py` to allow your domain
+5. Start the tunnel using PM2
+
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
 
