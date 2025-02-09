@@ -93,12 +93,27 @@ docker run -p 8000:8000 --env-file .env fbl-ota-rag
 - `main.py`: FastAPI server setup and configuration
 - `api.py`: API endpoints and route handlers
 - `agent_setup.py`: RAG agent configuration and setup
+- `vector_store_manager.py`: Vector store management and document processing
+- `document_processor.py`: Document processing and tracking
 - `prompts.py`: System prompts and query templates
+- `processed_files.json`: Tracking file for processed documents
 - `test_api.py`: API testing suite
 - `requirements.txt`: Project dependencies
 - `.env`: Environment configuration
 - `Dockerfile`: Container configuration
 - `.dockerignore`: Docker build exclusions
+
+## Configuration Parameters
+### Agent Configuration
+- Chunk size: 2048 tokens (optimized for context preservation)
+- Chunk overlap: 220 tokens (ensures smooth context transitions)
+- Maximum output tokens: 2048
+- Top-k similarity matches: 8 (for comprehensive retrieval)
+
+### Vector Store Configuration
+- Uses Supabase with pgvector for efficient vector storage
+- Automatic document tracking and deduplication
+- Metadata-enhanced document processing
 
 ## Dependencies
 ### Core Dependencies

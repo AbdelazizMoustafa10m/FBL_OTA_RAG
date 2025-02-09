@@ -51,10 +51,11 @@ def setup_agent():
     storage_context = vector_manager.storage_context
 
     # Set up LLM and configure settings
-    llm = OpenAI(model="gpt-4o-mini", temperature=0.3)
+    llm = OpenAI(model="gpt-4", temperature=0.3)
     Settings.llm = llm
-    Settings.chunk_size = 512
-    Settings.chunk_overlap = 100  # Increased for better context overlap
+    Settings.chunk_size = 2048  # Increased chunk size for better context
+    Settings.chunk_overlap = 220  # Increased overlap to maintain context between chunks
+    Settings.num_output = 2048  # Increase max output tokens
     
     # Create index using vector_manager's create_index method
     # First get all documents to create the index
@@ -62,7 +63,7 @@ def setup_agent():
     index = vector_manager.create_index(documents)
     
     # Configure query engine with better retrieval and response synthesis
-    query_engine = index.as_query_engine(similarity_top_k=5)
+    query_engine = index.as_query_engine(similarity_top_k=8)
 
     tools = [
         QueryEngineTool(
