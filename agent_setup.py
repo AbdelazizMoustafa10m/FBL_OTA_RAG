@@ -18,12 +18,26 @@ def setup_agent():
     """Set up and return the ReAct agent with all necessary components"""
     load_dotenv()
 
+    # Check for required environment variables
+    required_vars = {
+        "SUPABASE_URL": os.getenv("SUPABASE_URL"),
+        "SUPABASE_KEY": os.getenv("SUPABASE_KEY"),
+        "SUPABASE_DB_CONNECTION": os.getenv("SUPABASE_DB_CONNECTION"),
+        "LLAMA_CLOUD_API_KEY": os.getenv("LLAMA_CLOUD_API_KEY"),
+        "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY")
+    }
+
+    # Check if any required variables are missing
+    missing_vars = [var for var, value in required_vars.items() if not value]
+    if missing_vars:
+        raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
     # Initialize VectorStoreManager with all required credentials
     vector_manager = VectorStoreManager(
-        supabase_url=os.getenv("SUPABASE_URL"),
-        supabase_key=os.getenv("SUPABASE_KEY"),
-        postgres_connection=os.getenv("SUPABASE_DB_CONNECTION"),
-        llama_cloud_api_key=os.getenv("LLAMA_CLOUD_API_KEY")
+        supabase_url=required_vars["SUPABASE_URL"],
+        supabase_key=required_vars["SUPABASE_KEY"],
+        postgres_connection=required_vars["SUPABASE_DB_CONNECTION"],
+        llama_cloud_api_key=required_vars["LLAMA_CLOUD_API_KEY"]
     )
     
     # Initialize DocumentProcessor

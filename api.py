@@ -13,7 +13,16 @@ app = APIRouter(
 )
 
 # Initialize the agent
-agent = setup_agent()
+_agent = None
+
+def get_agent():
+    global _agent
+    if _agent is None:
+        try:
+            _agent = setup_agent()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to initialize agent: {str(e)}")
+    return _agent
 
 class Query(BaseModel):
     question: str
@@ -27,6 +36,8 @@ class Response(BaseModel):
 @app.post("/query", response_model=Response)
 async def query_documents(query: Query):
     try:
+        # Get agent instance
+        agent = get_agent()
         # Get response from agent
         response = agent.query(query.question)
         
