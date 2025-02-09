@@ -49,6 +49,7 @@ processed_files.json
 
 # Data and Processing
 data/*
+!data/*.pdf
 !data/.gitkeep
 
 # IDE Settings
