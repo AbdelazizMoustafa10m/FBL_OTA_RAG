@@ -4,8 +4,12 @@ module.exports = {
     script: 'uvicorn',
     args: 'main:app --host 0.0.0.0 --port 8000',
     interpreter: '/Users/abdelazizmoustafa/Desktop/prj/simple_rag/venv/bin/python3',
+    cwd: '/Users/abdelazizmoustafa/Desktop/prj/simple_rag',
     env: {
       NODE_ENV: 'production',
+      PORT: '8000',
+      HOST: '0.0.0.0',
+      PYTHONUNBUFFERED: 'true',
     },
     autorestart: true,
     watch: false,

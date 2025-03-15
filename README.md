@@ -3,6 +3,8 @@
 An AI-powered information retrieval system for Flash Bootloader and Over-The-Air (OTA) update technologies using Retrieval Augmented Generation (RAG). This system helps developers and engineers access relevant information about bootloader configurations, OTA updates, and related security practices through natural language queries.
 
 ## Features
+- Special handling for security class queries with strict adherence to source documentation
+- Support for both cloud and local vector database deployments
 - Natural language query understanding for technical questions
 - Intelligent retrieval of bootloader and OTA documentation
 - Context-aware responses using RAG technology
@@ -18,7 +20,7 @@ An AI-powered information retrieval system for Flash Bootloader and Over-The-Air
   - Efficient document chunking and embedding generation
   - Intelligent document deduplication and processing tracking
   - High-performance vector similarity search with metadata filtering
-  - Scalable vector storage using Supabase PostgreSQL vector database
+  - Scalable vector storage using Qdrant vector database (both cloud and local options)
 - Real-time response generation with OpenAI
 - RESTful API endpoints using FastAPI
 - Docker containerization for easy deployment
@@ -28,8 +30,8 @@ An AI-powered information retrieval system for Flash Bootloader and Over-The-Air
 ## Prerequisites
 - Python 3.9 or higher
 - OpenAI API key
-- Supabase account and project
-- PostgreSQL with pgvector extension (handled by Supabase)
+- Qdrant instance (cloud or local)
+- LlamaParse API key (for document processing)
 
 ## Installation
 ```bash
@@ -49,24 +51,26 @@ pip install -r requirements.txt
 1. Create a `.env` file in the project root with your configuration:
 ```ini
 OPENAI_API_KEY=your-key-here
-SUPABASE_URL=your-supabase-project-url
-SUPABASE_KEY=your-supabase-api-key
+LLAMA_CLOUD_API_KEY=your-llama-parse-key
+
+# For cloud Qdrant (optional)
+QDRANT_URL=your-qdrant-url
+QDRANT_API_KEY=your-qdrant-api-key
 ```
 
-2. Set up Supabase:
-- Create a new project in Supabase
-- Enable the pgvector extension in your Supabase project
-- Create necessary tables and indexes (see documentation)
+2. Qdrant Configuration:
+- For cloud deployment: Set up a Qdrant cloud instance and add credentials to `.env`
+- For local deployment: No additional setup needed, local storage will be created automatically
 
 ## Usage
 
 ### Running Locally
 1. Start the API server:
 ```bash
-python main.py
+python run_server.py
 ```
 
-2. The API will be available at `http://localhost:8000`
+2. The API will be available at `http://localhost:8080`
 
 ### Using Docker
 1. Build the Docker image:
@@ -76,7 +80,7 @@ docker build -t fbl-ota-rag .
 
 2. Run the container:
 ```bash
-docker run -p 8000:8000 --env-file .env fbl-ota-rag
+docker run -p 8080:8080 --env-file .env fbl-ota-rag
 ```
 
 ### API Endpoints
@@ -93,7 +97,7 @@ docker run -p 8000:8000 --env-file .env fbl-ota-rag
 - `main.py`: FastAPI server setup and configuration
 - `api.py`: API endpoints and route handlers
 - `agent_setup.py`: RAG agent configuration and setup
-- `vector_store_manager.py`: Vector store management and document processing
+- `vector_store_manager.py`: Vector store management using Qdrant and document processing
 - `document_processor.py`: Document processing and tracking
 - `prompts.py`: System prompts and query templates
 - `processed_files.json`: Tracking file for processed documents
@@ -111,9 +115,10 @@ docker run -p 8000:8000 --env-file .env fbl-ota-rag
 - Top-k similarity matches: 10 (for comprehensive retrieval)
 
 ### Vector Store Configuration
-- Uses Supabase with pgvector for efficient vector storage
+- Uses Qdrant for efficient vector storage (supports both cloud and local deployments)
 - Automatic document tracking and deduplication
 - Metadata-enhanced document processing
+- Improved error handling and fallback mechanisms
 
 ## Dependencies
 ### Core Dependencies
@@ -121,7 +126,8 @@ docker run -p 8000:8000 --env-file .env fbl-ota-rag
 - llama-parse: Advanced document parsing and structuring
 - llama-index-llms-openai: OpenAI integration for LlamaIndex
 - llama-index-embeddings-openai: OpenAI embeddings for vector search
-- supabase: Vector database and PostgreSQL integration
+- qdrant-client: Vector database integration
+- llama-index-vector-stores-qdrant: Qdrant integration for LlamaIndex
 - python-dotenv: Environment management
 
 ### API Dependencies
@@ -143,7 +149,7 @@ The application uses PM2 for process management to ensure high availability and 
 {
   name: 'fbl-ota-rag',
   script: 'uvicorn',
-  args: 'main:app --host 0.0.0.0 --port 8000',
+  args: 'main:app --host 0.0.0.0 --port 8080',
   // ... other configurations
 }
 ```
@@ -173,7 +179,7 @@ credentials-file: /path/to/credentials.json
 
 ingress:
   - hostname: your-domain.example.com
-    service: http://localhost:8000
+    service: http://localhost:8080
   - service: http_status:404
 ```
 

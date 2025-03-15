@@ -1,13 +1,13 @@
 # Core dependencies
 llama-index-core>=0.10.0
 llama-parse>=0.4.0
-supabase>=2.3.1
-langchain-community>=0.0.20
 python-dotenv>=1.0.0
 openai>=1.12.0
 llama-index-llms-openai  # If using OpenAI chat models
 llama-index-embeddings-openai  # For OpenAI embeddings
-llama-index-vector-stores-supabase  # For Supabase vector store
+llama-index-vector-stores-qdrant  # For Qdrant vector store
+qdrant-client>=1.7.0  # Qdrant client
+numpy>=1.24.0  # Required for vector operations
 
 # API dependencies
 fastapi>=0.110.0

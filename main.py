@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import app as api_app
+from api import app as api_app, get_agent
 import os
 from dotenv import load_dotenv
 
@@ -33,9 +33,14 @@ def main():
     # Load environment variables
     load_dotenv()
     
+    # Initialize the agent at startup
+    print("Initializing agent and processing documents...")
+    get_agent()
+    print("Agent initialization complete")
+    
     # Get configuration from environment variables
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
+    port = int(os.getenv("PORT", "8080"))  # Changed default port to 8080 to avoid conflicts
     reload = os.getenv("DEBUG", "False").lower() == "true"
     
     # Run the server

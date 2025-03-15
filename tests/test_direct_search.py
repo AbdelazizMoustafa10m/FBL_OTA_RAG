@@ -1,9 +1,21 @@
 from vector_store_manager import VectorStoreManager
 from llama_index.embeddings.openai import OpenAIEmbedding
+import os
+from dotenv import load_dotenv
 
 def test_direct_search():
+    # Load environment variables
+    load_dotenv()
+    
     # Initialize the vector store manager and embedding model
-    vm = VectorStoreManager()
+    qdrant_url = os.getenv("QDRANT_URL")
+    qdrant_api_key = os.getenv("QDRANT_API_KEY")
+    
+    if qdrant_url and qdrant_api_key:
+        vm = VectorStoreManager(qdrant_url=qdrant_url, qdrant_api_key=qdrant_api_key)
+    else:
+        vm = VectorStoreManager(local_path="./qdrant_data")
+        
     embed_model = OpenAIEmbedding()
     
     # Create multiple search queries to try to find the exact content
@@ -20,21 +32,23 @@ def test_direct_search():
             print(f"\nQuery: {query}")
             query_embedding = embed_model.get_text_embedding(query)
             
-            result = vm.client.rpc(
-                'match_documents',
-                {
-                    'query_embedding': query_embedding,
-                    'similarity_threshold': 0.5,
-                    'match_count': 3
-                }
-            ).execute()
+            # Search using Qdrant client
+            search_results = vm.client.search(
+                collection_name="document_store",
+                query_vector=query_embedding,
+                limit=3,
+                with_payload=True
+            )
             
-            for item in result.data:
-                if "delivery includes:" in item['content'].lower():
-                    print(f"\nFound relevant content (similarity: {item['similarity']:.3f}):")
-                    print("---")
-                    print(item['content'])
-                    return  # Exit after finding the first good match
+            for result in search_results:
+                payload = result.payload
+                if payload and "text" in payload:
+                    content = payload["text"]
+                    if "delivery includes:" in content.lower():
+                        print(f"\nFound relevant content (similarity: {result.score:.3f}):")
+                        print("---")
+                        print(content)
+                        return  # Exit after finding the first good match
             
     except Exception as e:
         print(f"Error: {str(e)}")

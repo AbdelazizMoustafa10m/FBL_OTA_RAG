@@ -84,55 +84,60 @@ class DocumentProcessor:
         print("Processing new documents...")
         processed_files = self.get_processed_files()
         success = True
+        
+        # Initialize text splitter with enhanced chunking strategy
+        text_splitter = SentenceSplitter(
+            chunk_size=512,
+            chunk_overlap=150,  # Increased overlap for better context
+            include_metadata=True
+        )
 
-        # Load documents using SimpleDirectoryReader with LlamaParse
-        file_extractor = {".pdf": self.parser}
-        try:
-            # Initialize text splitter with enhanced chunking strategy
-            text_splitter = SentenceSplitter(
-                chunk_size=512,
-                chunk_overlap=150,  # Increased overlap for better context
-                include_metadata=True
-            )
-            
-            # Load and process documents
-            reader = SimpleDirectoryReader(
-                input_files=new_file_paths,
-                file_extractor=file_extractor,
-                filename_as_id=True
-            )
-            documents = reader.load_data()
-            
-            # Split documents into smaller chunks while preserving metadata
-            processed_documents = []
-            for doc in documents:
-                nodes = text_splitter.get_nodes_from_documents([doc])
-                # Convert nodes back to documents while preserving metadata
-                for node in nodes:
-                    # Enhance metadata with section and content type information
-                    enhanced_metadata = node.metadata.copy() if node.metadata else {}
-                    enhanced_metadata.update({
-                        'section': self._extract_section_header(node.text),
-                        'content_type': self._identify_content_type(node.text)
-                    })
-                    processed_documents.append(Document(text=node.text, metadata=enhanced_metadata))
-            
-            # Insert documents into the vector store
-            result = self.vector_store_manager.insert_documents(processed_documents)
-            
-            if result['failed_insertions'] > 0:
-                print(f"Warning: {result['failed_insertions']} documents failed to insert")
+        # Process each document individually with error handling
+        for file_path in new_file_paths:
+            try:
+                print(f"Processing document: {file_path}")
+                file_extractor = {".pdf": self.parser}
+                
+                # Process single document
+                reader = SimpleDirectoryReader(
+                    input_files=[file_path],  # Process just one file
+                    file_extractor=file_extractor,
+                    filename_as_id=True
+                )
+                documents = reader.load_data()
+                
+                # Split documents into smaller chunks while preserving metadata
+                processed_documents = []
+                for doc in documents:
+                    nodes = text_splitter.get_nodes_from_documents([doc])
+                    # Convert nodes back to documents while preserving metadata
+                    for node in nodes:
+                        # Enhance metadata with section and content type information
+                        enhanced_metadata = node.metadata.copy() if node.metadata else {}
+                        enhanced_metadata.update({
+                            'section': self._extract_section_header(node.text),
+                            'content_type': self._identify_content_type(node.text)
+                        })
+                        processed_documents.append(Document(text=node.text, metadata=enhanced_metadata))
+                
+                # Insert documents into the vector store
+                result = self.vector_store_manager.insert_documents(processed_documents)
+                
+                if result['failed_insertions'] > 0:
+                    print(f"Warning: {result['failed_insertions']} documents failed to insert for {file_path}")
+                    success = False
+                else:
+                    print(f"Successfully inserted {result['successful_insertions']} documents for {file_path}")
+                    # Only mark as processed if successful
+                    processed_files.add(file_path)
+                    self.save_processed_files(processed_files)
+                    
+            except Exception as e:
+                print(f"Error processing document {file_path}: {e}")
                 success = False
-            else:
-                print(f"Successfully inserted {result['successful_insertions']} documents")
-            
-            # Update processed files list
-            processed_files.update(new_file_paths)
-            self.save_processed_files(processed_files)
-            return success
-        except Exception as e:
-            print(f"Error processing documents: {e}")
-            return False
+                # Continue with next document
+        
+        return success
 
     def get_all_documents(self) -> List[Document]:
         """Get all processed documents from the vector store directly using the load_documents_from_store method."""
