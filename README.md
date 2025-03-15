@@ -105,10 +105,10 @@ docker run -p 8000:8000 --env-file .env fbl-ota-rag
 
 ## Configuration Parameters
 ### Agent Configuration
-- Chunk size: 2048 tokens (optimized for context preservation)
-- Chunk overlap: 220 tokens (ensures smooth context transitions)
-- Maximum output tokens: 2048
-- Top-k similarity matches: 8 (for comprehensive retrieval)
+- Chunk size: 4096 tokens (optimized for context preservation)
+- Chunk overlap: 300 tokens (ensures smooth context transitions)
+- Maximum output tokens: 4096
+- Top-k similarity matches: 10 (for comprehensive retrieval)
 
 ### Vector Store Configuration
 - Uses Supabase with pgvector for efficient vector storage
